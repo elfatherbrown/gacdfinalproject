@@ -1,0 +1,110 @@
+---
+title: "README"
+author: "Alejandro Borges"
+date: "5/30/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Getting and cleaning data 
+### Course Project
+
+
+####Instructions:
+Download file at https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip and unzip it in this directory. It should create a subdirectory "UCI HAR Dataset".
+
+Run the run_analysis.R script.
+
+####Codebook:
+The codebook.txt file contains the description of the resulting dataset.
+
+#### Notes:
+
+As per the README file in the original UCI HAR Dataset, we have two components of it (test and train), each in their own directory, each with identically structured files.
+
+The main variables file if the directory is test, would be X_test.txt. That has a long line of a lot of words, which are the variable values:
+
+- In Bash:
+MacBook-Pro-de-MAcbook-2:UCI HAR Dataset alex$ wc -w test/X_test.txt 
+ 1653267 test/X_test.txt
+
+- In R:
+''' length(scan("./test/X_test.txt",what = character()))
+Read 1653267 items
+
+However, in the same readme, it is speciffied that:
+- There is a record for each person in the study.
+- For each record "A 561-feature vector with time and frequency domain variables"
+
+Thus, the values in the dataset should have 561 variables per record:
+
+```{r}
+t_main <- scan("./test/X_test.txt",what = character())
+```
+
+```{r}
+length(t_main)/561
+```
+
+Also from the readme:
+'train/subject_train.txt': Each row identifies the subject who performed the activity for each window sample. Its range is from 1 to 30. 
+
+So for each row here, there is a record. Take a look at the contents of this file:
+
+```{r}
+print(head(scan("./test/subject_test.txt",what = character())))
+print(tail(scan("./test/subject_test.txt",what = character())))
+```
+
+As you can see from this, the total count of space separated values in the main X_test file, divided by 561 (number of variables per record), is equal to the number of rows in subject_test.txt. 
+```{r}
+rl_subjects <- scan("./test/subject_test.txt",what = character())
+
+print(length(rl_subjects)==length(t_main)/561) 
+```
+
+Now lets look at what unique subjects we have:
+```{r}
+table(rl_subjects)
+```
+Huh... so it looks like there is a variable number of values for each subject in the main file.
+
+Now take a look at what the subject_text.txt file has:
+
+```{bash}
+sort -u ./test/subject_test.txt
+wc -l ./test/subject_test.txt
+```
+
+That is, it has the subject (2,4...24), repeated by line as many times as we can see by: 
+```{r}
+table(rl_subjects)
+```
+Now we also know the main meassurments file ./test/X_test.txt, read into this context into t_main, has a length of lines equal to subject_test.txt.
+
+The readme on the data set says: 
+
+- 'activity_labels.txt': Links the class labels with their activity name.
+
+- 'train/X_train.txt': Training set.
+
+- 'train/y_train.txt': Training labels.
+
+- 'test/X_test.txt': Test set.
+
+- 'test/y_test.txt': Test labels.
+
+The following files are available for the train and test data. Their descriptions are equivalent. 
+
+- 'train/subject_train.txt': Each row identifies the subject who performed the activity for each window sample. Its range is from 1 to 30.
+
+We can thus conclude we can read each line in subject_train.txt as one observation for the user whose number appears there, extract the corresponding 561-value line, of the same line number, in X_Train, get what test number corresponds to that observation from y_test and translate that from the activity_labels.txt file. Also, as :
+
+- 'features.txt': List of all features.
+
+This file gives us a variable name for each line, we will try to assume that we can translate column names from the 561 value vector, position by position in said vector, to the corresponding line in features.txt.
+
+But... step by step.... 
