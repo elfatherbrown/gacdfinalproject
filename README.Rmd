@@ -108,3 +108,44 @@ We can thus conclude we can read each line in subject_train.txt as one observati
 This file gives us a variable name for each line, we will try to assume that we can translate column names from the 561 value vector, position by position in said vector, to the corresponding line in features.txt.
 
 But... step by step.... 
+
+First, parse the main X file:
+
+con <- file("UCI HAR Dataset/test/X_test.txt")
+test_obs_byline <- readLines(con)
+split <- sapply(test_obs_byline, function(line){strsplit(line,split="\\s+")})
+
+Now we should be able to parse the numbers easily:
+parse_number(split[[1]])
+
+And then:
+length(parse_number(split[[1]]))
+[1] 562
+
+Oh.... huh... shouldnt they be 561?
+
+Get the length of each split line
+
+lens <- lapply(split, length)
+
+Are they all of the same length?
+lens[lens!=562]
+R: named list()
+
+They are, so now we can assume that one value aint nice. By looking at the parse data, we see that each line starts with an empty space, which parse_number turns into a NA:
+parse_number(split[[2]])
+[1]           NA  0.286026710 ...
+
+Ah... so:
+parse_number(split[[2]])[2:562]
+ [1]  0.286026710 -0.013163359 .... 
+ 
+And this has the length it should:
+length(parse_number(split[[2]])[2:562])
+[1] 561
+
+So now we can:
+
+split <- sapply(test_obs_byline, function(line){strsplit(line,split="\\s+")[2:562]})
+
+And split would be all the observations, one for each position in the list. Good start.
