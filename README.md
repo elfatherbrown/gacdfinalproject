@@ -5,6 +5,7 @@
 - README.md
   - This file
 - README.Rmd (also in html and pdf)
+  - PLEASE DO READ: **README.pdf**, directly on github. It is [the actual readme file](https://github.com/elfatherbrown/gacdfinalproject/blob/master/README.pdf).
   - The full documentation of the project itself
   - You can run it using the knitr package in Rstudio
 - codebook.txt
