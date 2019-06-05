@@ -9,6 +9,13 @@
   - You can run it using the knitr package in Rstudio
 - codebook.txt
   - A discussion on the resulting dataset of this project and its variables
+- new_variable_names.txt
+  - An equivalence '=' separated table of old variable names = new variable name
+- run_analysis.R
+  - The script you should run to see if I did my work.
+  - While its not interactive, it will output what it does at each step, along with 
+  dataset samples. It can be anoying, but if you scroll to the top and slowly go down,
+  you'll see why I thought it was a good idea.
 
 ### Most important reminder:
 
