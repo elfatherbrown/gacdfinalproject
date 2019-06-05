@@ -1,7 +1,5 @@
 ---
 title: "README"
-author: "Alejandro Borges"
-date: "5/30/2019"
 output: html_document
 ---
 

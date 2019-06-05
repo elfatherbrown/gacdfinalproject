@@ -1,19 +1,23 @@
+Please make sure you read the ./UHCI HAR Dataset/features*txt files, which describes the original dataset which we refference here. 
+
 After running this script by including it or requiring it in your
-console, the resulting dataset will be in the act_subj variable.
+console, the resulting dataset will be:
 
-Also, it will have been written into the by_activity_and_subject.txt file
+a) In the act_subj variable.
 
-This file has both the activity_name ands subject variables. 
-activity_name: This is what the person was doing when the observation was made
-subject: It is an integer that uniquely identifies the subject performing the activity.
+b) Written into the by_activity_and_subject.txt file of the current working directory
 
-The rest of the variables in that dataset, are described in the original 
-features_info.txt and features.txt files. 
+The resulting dataset has "activity_name" and "subject" variables as their grouping columns. The rest of the variables are:
 
-However, it was required I changed the variable (column) names for something better looking. The new_variable_names.txt file, shows you which of the old names correspond to the new ones as such:
+a) Measurments as labeled by the features.txt files
+b) Extracted from the dirname/X_dirname.txt file, for dirname==test|train.
+c) Selected only the ones that have std deviation and mean data, as required.
+d) Variable names have been changed to a more sensible standard: all funny characters in the original names have been replaced by an underscore "_", everything has been lowercased. The equivalence of our variable names and the original variable names is documented in the new_variables_names.txt with the follwing format:
 ____orig_name____=____new_name_____
 tBodyAcc-mean()-X=t_body_acc_mean_x
 tBodyAcc-mean()-Y=t_body_acc_mean_y
 tBodyAcc-mean()-Z=t_body_acc_mean_z
 ....
-Separated by an equal sign.
+As you can see, separated by an equal sign.
+
+All the observed values should be, as in its original form, between -1 and 1 and their units are mostly not important, as everything has been normalized for comparision.
