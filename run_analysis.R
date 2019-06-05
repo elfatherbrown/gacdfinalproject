@@ -4,6 +4,7 @@ library("here")
 library("readr")
 library("stringr")
 library("dplyr")
+
 DATADIR = "UCI HAR Dataset"
 checkData <- function() {
   if (DATADIR %in% dir()) {
@@ -34,7 +35,32 @@ processFile = function(filepath) {
   
   close(con)
 }
-
+getFileFeatureVector <- function(dname, fname) {
+  con <- file(file.path(getwd(),DATADIR, dname, fname))
+  test_obs_byline <- readLines(con)
+  #The feature files have exactly one extra space at the begining of each line
+  # and exactly 561 variables. Thus the indexing at the end of the parse_number
+  split <-
+    sapply(test_obs_byline, function(line) {
+      return(parse_number(strsplit(line, split = "\\s+")[[1]][2:562]))
+    })
+  close.connection(con)
+  return (split)
+}
+getFileSignalVector <- function(dname, fname) {
+  con <- file(file.path(getwd(),DATADIR, dname, fname))
+  test_obs_byline <- readLines(con)
+  split <-
+    sapply(test_obs_byline, function(line) {
+      ls<-strsplit(line, split = "\\s+")
+      len<-length(ls[[1]])
+      #This is the time domain signal of 128 samples
+      curvec<-ls[[1]][2:(len)]
+      return(curvec)
+    })
+  close.connection(con)
+  return (split)
+}
 #The documentation specifies:
 # For each record it is provided:
 #   ======================================
@@ -51,14 +77,8 @@ processFile = function(filepath) {
 # and the activity that was being performed, translated to text
 
 featureVector <- function (dname) {
-  fname <- paste(c("X_", dname, ".txt"), collapse  = "")
-  con <- file(here(DATADIR, dname, fname))
-  test_obs_byline <- readLines(con)
-  split <-
-    sapply(test_obs_byline, function(line) {
-      return(parse_number(strsplit(line, split = "\\s+")[[1]][2:562]))
-    })
-  close.connection(con)
+  fname<- paste(c("X_", dname, ".txt"), collapse  = "")
+  split <- getFileFeatureVector(dname,fname)
   #Transpose the resulting matrix
   t <- t(split)
   #Give her the colnames!
@@ -73,9 +93,10 @@ featureVector <- function (dname) {
   a <- activities(dname)
   t$activity_id <- a$activity_id
   t$activity_name <- a$activity_name
-  t$id <- seq_along(t$activity_id)
+  t$obs_id <- seq_along(t$activity_id)
   #Return with the subject as first column, everything else at last
-  return(t %>% select(id, subject, activity_id, activity_name, everything()))
+  t<- t %>% select(obs_id, subject, activity_id, activity_name, everything())
+  return(t)
 }
 
 #signalVector will return the values, one per column, for:
@@ -87,23 +108,48 @@ featureVector <- function (dname) {
 #
 
 signalVector <- function (dname) {
-  fnames <- dir(here(DATADIR, dname, "Inertial Signals"))
-  split <- sapply(
-    here(DATADIR, dname, "Inertial Signals", fnames),
-    FUN = read.delim,
-    stringsAsFactors = FALSE,
-    row.names = NULL
-  )
-  #Get decent names for the columns. They were terrible.
-  names(split)<-sapply(str_replace_all(names(split),pattern = "^/(.*)\\.txt\\..*","/\\1"),basename)
-  split <- as_tibble(split) %>% mutate_all(parse_number)
+  fnames <- dir(file.path(getwd(),DATADIR, dname, "Inertial Signals"))
+  # split <- sapply(
+  #   here(DATADIR, dname, "Inertial Signals", fnames),
+  #   FUN = read.delim,
+  #   stringsAsFactors = FALSE,
+  #   row.names = NULL,
+  #   sep="\t"
+  # )
+  split <-
+    sapply(
+      fnames,
+      FUN = function(fn) {
+        return (getFileSignalVector(paste(
+          dname, "/", "Inertial Signals/",sep = "", collapse = ""), fn
+        ))}
+        )
+  #The sapply strategy gives us columns and values inverted. We traspose:
+  
+  split<-as_tibble(split)
+  #Remove .txt from the column names
+  
+  
+  names(split) <-
+    sapply(str_replace_all(names(split), pattern = "^(.*)\\.txt$", "/\\1"),
+           basename)
+  #Parse the numbers
+  split <-
+    split %>% 
+    mutate_all(parse_number) %>% 
+      mutate(s_id=seq_len(length.out = nrow(split)),
+             time_id = rep(seq(1, 128, by=1),nrow(split)/128)) %>% 
+                group_by(time_id) %>% 
+                  mutate(obs_id=seq_along(time_id))%>% 
+                  ungroup() %>%
+                    select(s_id,obs_id,time_id,everything())
   return (split)
 }
 #Load the subject list, which awe assume to be listed in the same
 #order as the main observations file
 subjects <- function (dname) {
   fname <- paste(c("subject_", dname, ".txt"), collapse  = "")
-  con <- file(here(DATADIR, dname, fname))
+  con <- file(file.path(getwd(),DATADIR, dname, fname))
   subjects <- readLines(con)
   close.connection(con)
   return(subjects)
@@ -113,7 +159,7 @@ subjects <- function (dname) {
 activities <- function (dname) {
   #Parse the activity number to name file:
   actrans <-
-    read.delim(here(DATADIR, "activity_labels.txt"),
+    read.delim(file.path(getwd(),DATADIR, "activity_labels.txt"),
                sep = " ",
                header = FALSE)
   #Make it a tibble just for better syntax
@@ -122,7 +168,7 @@ activities <- function (dname) {
     as_tibble(actrans) %>% mutate(activity_id = V1, activity_name = V2) %>% select(activity_id, activity_name)
   #Parse the activities for this directory
   fname <- paste(c("y_", dname, ".txt"), collapse  = "")
-  con <- file(here(DATADIR, dname, fname))
+  con <- file(file.path(getwd(),DATADIR, dname, fname))
   activities <- parse_number(readLines(con))
   close.connection(con)
   #The follwing will make a tibble with a seq number on the activity column
@@ -138,7 +184,7 @@ activities <- function (dname) {
 
 featureVarnames <- function () {
   v <-
-    read.delim(here(DATADIR, "features.txt"),
+    read.delim(file.path(getwd(),DATADIR, "features.txt"),
                header = FALSE,
                sep = " ") %>% select(pos = V1, name = V2)
 }
@@ -177,3 +223,5 @@ mergeSamsungData <- function () {
   #Do the nasty stuff here
   ###
 }
+checkData()
+

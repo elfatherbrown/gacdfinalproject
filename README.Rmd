@@ -149,3 +149,23 @@ So now we can:
 split <- sapply(test_obs_byline, function(line){strsplit(line,split="\\s+")[2:562]})
 
 And split would be all the observations, one for each position in the list. Good start.
+
+##Interesting note about sizes of the dataset files.
+
+MacBook-Pro-de-MAcbook-2:Inertial Signals alex$ wc *
+    2947  377216 6041350 body_acc_x_test.txt
+    2947  377216 6041350 body_acc_y_test.txt
+    2947  377216 6041350 body_acc_z_test.txt
+    2947  377216 6041350 body_gyro_x_test.txt
+    2947  377216 6041350 body_gyro_y_test.txt
+    2947  377216 6041350 body_gyro_z_test.txt
+    2947  377216 6041350 total_acc_x_test.txt
+    2947  377216 6041350 total_acc_y_test.txt
+    2947  377216 6041350 total_acc_z_test.txt
+   26523 3394944 54372150 total
+MacBook-Pro-de-MAcbook-2:Inertial Signals alex$ cd ../
+MacBook-Pro-de-MAcbook-2:test alex$ wc * 
+Inertial Signals/ X_test.txt        subject_test.txt  y_test.txt        
+MacBook-Pro-de-MAcbook-2:test alex$ wc  X_test.txt 
+    2947 1653267 26458166 X_test.txt
+MacBook-Pro-de-MAcbook-2:test alex$ wc  X_test.txt 
