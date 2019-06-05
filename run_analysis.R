@@ -81,11 +81,9 @@ signalVector <- function (dname) {
   split <-
     sapply(
       fnames,
-      FUN = function(fn) {
-        return (getFileSignalVector(paste(
-          dname, "/", "Inertial Signals/",sep = "", collapse = ""), fn
-        ))}
-    )
+      FUN = getFileSignalVector,
+      dname=dname
+        )
   #The sapply strategy gives us columns and values inverted. We traspose:
   
   split<-as_tibble(split)
@@ -145,8 +143,8 @@ getFileFeatureVector <- function(dname, fname) {
 #   call "time_id" in our returned tibble
 # - 2947 observations per file
 # - thus this vector will be of 2947*128=377216 slots
-getFileSignalVector <- function(dname, fname) {
-  con <- file(file.path(getwd(),DATADIR, dname, fname))
+getFileSignalVector <- function(fname,dname) {
+  con <- file(file.path(getwd(),DATADIR, dname,"Inertial Signals",fname))
   test_obs_byline <- readLines(con)
   split <-
     sapply(test_obs_byline, function(line) {
