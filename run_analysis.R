@@ -5,7 +5,10 @@ library("readr")
 library("stringr")
 library("dplyr")
 
+#This variables configures the name of the directory of the unzipped dataset
 DATADIR = "UCI HAR Dataset"
+
+#We check if the directory is in the current working directory
 checkData <- function() {
   if (DATADIR %in% dir()) {
     print("UCI HAR Dataset directory found")
@@ -20,47 +23,10 @@ checkData <- function() {
     return (FALSE)
   }
 }
-##Line by line reader. All files here are a line per record,
-#  values therefor space delimited
+####
+# Main functions
+###
 
-processFile = function(filepath) {
-  con = file(filepath, "r")
-  while (TRUE) {
-    line = readLines(con, n = 1)
-    if (length(line) == 0) {
-      break
-    }
-    print(line)
-  }
-  
-  close(con)
-}
-getFileFeatureVector <- function(dname, fname) {
-  con <- file(file.path(getwd(),DATADIR, dname, fname))
-  test_obs_byline <- readLines(con)
-  #The feature files have exactly one extra space at the begining of each line
-  # and exactly 561 variables. Thus the indexing at the end of the parse_number
-  split <-
-    sapply(test_obs_byline, function(line) {
-      return(parse_number(strsplit(line, split = "\\s+")[[1]][2:562]))
-    })
-  close.connection(con)
-  return (split)
-}
-getFileSignalVector <- function(dname, fname) {
-  con <- file(file.path(getwd(),DATADIR, dname, fname))
-  test_obs_byline <- readLines(con)
-  split <-
-    sapply(test_obs_byline, function(line) {
-      ls<-strsplit(line, split = "\\s+")
-      len<-length(ls[[1]])
-      #This is the time domain signal of 128 samples
-      curvec<-ls[[1]][2:(len)]
-      return(curvec)
-    })
-  close.connection(con)
-  return (split)
-}
 #The documentation specifies:
 # For each record it is provided:
 #   ======================================
@@ -99,23 +65,19 @@ featureVector <- function (dname) {
   return(t)
 }
 
-#signalVector will return the values, one per column, for:
-#  x, y and z axis in:
-#   ls test/Inertial\ Signals/
+#signalVector will return the values, one per column, for each file in the
+# dname/Inertial\ Signals/ directory, for dirname=="test"|"train"
+# For your refference, here are the files for the test dname:
 # body_acc_x_test.txt	body_acc_z_test.txt	body_gyro_y_test.txt	total_acc_x_test.txt	total_acc_z_test.txt
 # body_acc_y_test.txt	body_gyro_x_test.txt	body_gyro_z_test.txt	total_acc_y_test.txt
-
 #
 
 signalVector <- function (dname) {
+  #Get a vector with all the filenames in the dname directory
   fnames <- dir(file.path(getwd(),DATADIR, dname, "Inertial Signals"))
-  # split <- sapply(
-  #   here(DATADIR, dname, "Inertial Signals", fnames),
-  #   FUN = read.delim,
-  #   stringsAsFactors = FALSE,
-  #   row.names = NULL,
-  #   sep="\t"
-  # )
+  #For each file, getFileSignalVector. Note the freaky wonderful
+  #functional way in which we generate a function for each of the file names
+  #just to append the "Inertial Signals"
   split <-
     sapply(
       fnames,
@@ -123,7 +85,7 @@ signalVector <- function (dname) {
         return (getFileSignalVector(paste(
           dname, "/", "Inertial Signals/",sep = "", collapse = ""), fn
         ))}
-        )
+    )
   #The sapply strategy gives us columns and values inverted. We traspose:
   
   split<-as_tibble(split)
@@ -137,14 +99,69 @@ signalVector <- function (dname) {
   split <-
     split %>% 
     mutate_all(parse_number) %>% 
-      mutate(s_id=seq_len(length.out = nrow(split)),
-             time_id = rep(seq(1, 128, by=1),nrow(split)/128)) %>% 
-                group_by(time_id) %>% 
-                  mutate(obs_id=seq_along(time_id))%>% 
-                  ungroup() %>%
-                    select(s_id,obs_id,time_id,everything())
+    mutate(s_id=seq_len(length.out = nrow(split)),
+           time_id = rep(seq(1, 128, by=1),nrow(split)/128)) %>% 
+    group_by(time_id) %>% 
+    mutate(obs_id=seq_along(time_id))%>% 
+    ungroup() %>%
+    select(s_id,obs_id,time_id,everything())
   return (split)
 }
+
+####
+# Helper functions
+###
+
+#Designed for the features in the dirname/X_dirname.txt files
+#where dirname == test|train.
+#dname == "test"|"train"
+#fname == "filename"
+#It will return a matrix of as many rows as lines
+#and 561 values, which is what the files have.
+getFileFeatureVector <- function(dname, fname) {
+  con <- file(file.path(getwd(),DATADIR, dname, fname))
+  test_obs_byline <- readLines(con)
+  #The feature files have exactly one extra space at the begining of each line
+  # and exactly 561 values per observation(line).
+  # Thus the hardcoded indexing [2:562] at the end of the parse_number
+  split <-
+    sapply(test_obs_byline, function(line) {
+      return(parse_number(strsplit(line, split = "\\s+")[[1]][2:562]))
+    })
+  close.connection(con)
+  return (split)
+}
+#Designed for the features in the dirname/Inertial Signals/*.txt files
+#where dirname == test|train.
+#dname == "test"|"train"
+#fname == "Inertial Signals/filename" 
+#(yes, you have to append the Inertial Signals/ directory yourself)
+#It will return a vector of as many values as there are in the file
+#In this case, it will not return just a fixed number as the values
+#in each line of this files is NOT a variable, but a time bound
+#value: each value is of the time when it was captured by the sensor
+#Each line has 128 values though. 
+# - One for each time slot (we assume and will test that), which we
+#   call "time_id" in our returned tibble
+# - 2947 observations per file
+# - thus this vector will be of 2947*128=377216 slots
+getFileSignalVector <- function(dname, fname) {
+  con <- file(file.path(getwd(),DATADIR, dname, fname))
+  test_obs_byline <- readLines(con)
+  split <-
+    sapply(test_obs_byline, function(line) {
+      ls<-strsplit(line, split = "\\s+")
+      len<-length(ls[[1]])
+      #This is the time domain signal of 128 samples
+      curvec<-ls[[1]][2:(len)]
+      return(curvec)
+    })
+  close.connection(con)
+  return (split)
+}
+
+
+
 #Load the subject list, which awe assume to be listed in the same
 #order as the main observations file
 subjects <- function (dname) {
