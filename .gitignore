@@ -4,3 +4,4 @@ UCI\ HAR\ Dataset
 by_activity_and_subject.*
 .*
 .Rproj.user
+*.Rproj
