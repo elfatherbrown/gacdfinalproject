@@ -122,46 +122,6 @@ featureVector <- function (dname) {
   return(t%>%clean_names())
 }
 
-#signalVector will return the values, one per column, for each file in the
-# dname/Inertial\ Signals/ directory, for dirname=="test"|"train"
-# For your refference, here are the files for the test dname:
-# body_acc_x_test.txt	body_acc_z_test.txt	body_gyro_y_test.txt	total_acc_x_test.txt	total_acc_z_test.txt
-# body_acc_y_test.txt	body_gyro_x_test.txt	body_gyro_z_test.txt	total_acc_y_test.txt
-#
-
-signalVector <- function (dname) {
-  #Get a vector with all the filenames in the dname directory
-  fnames <- dir(file.path(getwd(),DATADIR, dname, "Inertial Signals"))
-  #For each file, getFileSignalVector. Note the freaky wonderful
-  #functional way in which we generate a function for each of the file names
-  #just to append the "Inertial Signals"
-  split <-
-    sapply(
-      fnames,
-      FUN = getFileSignalVector,
-      dname=dname
-        )
-  #The sapply strategy gives us columns and values inverted. We traspose:
-  
-  split<-as_tibble(split)
-  #Remove .txt from the column names
-  
-  
-  names(split) <-
-    sapply(str_replace_all(names(split), pattern = "^(.*)\\.txt$", "/\\1"),
-           basename)
-  #Parse the numbers
-  split <-
-    split %>% 
-    mutate_all(parse_number) %>% 
-    mutate(s_id=seq_len(length.out = nrow(split)),
-           time_id = rep(seq(1, 128, by=1),nrow(split)/128)) %>% 
-    group_by(time_id) %>% 
-    mutate(obs_id=seq_along(time_id))%>% 
-    ungroup() %>%
-    select(s_id,obs_id,time_id,everything())
-  return (split)
-}
 
 ####
 # Helper functions
@@ -186,34 +146,7 @@ getFileFeatureVector <- function(dname, fname) {
   close.connection(con)
   return (split)
 }
-#Designed for the features in the dirname/Inertial Signals/*.txt files
-#where dirname == test|train.
-#dname == "test"|"train"
-#fname == "Inertial Signals/filename" 
-#(yes, you have to append the Inertial Signals/ directory yourself)
-#It will return a vector of as many values as there are in the file
-#In this case, it will not return just a fixed number as the values
-#in each line of this files is NOT a variable, but a time bound
-#value: each value is of the time when it was captured by the sensor
-#Each line has 128 values though. 
-# - One for each time slot (we assume and will test that), which we
-#   call "time_id" in our returned tibble
-# - 2947 observations per file
-# - thus this vector will be of 2947*128=377216 slots
-getFileSignalVector <- function(fname,dname) {
-  con <- file(file.path(getwd(),DATADIR, dname,"Inertial Signals",fname))
-  test_obs_byline <- readLines(con)
-  split <-
-    sapply(test_obs_byline, function(line) {
-      ls<-strsplit(line, split = "\\s+")
-      len<-length(ls[[1]])
-      #This is the time domain signal of 128 samples
-      curvec<-ls[[1]][2:(len)]
-      return(curvec)
-    })
-  close.connection(con)
-  return (split)
-}
+
 
 #Load the subject list, which awe assume to be listed in the same
 #order as the main observations file
