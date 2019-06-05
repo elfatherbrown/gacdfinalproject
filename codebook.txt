@@ -1,7 +1,7 @@
 After running this script by including it or requiring it in your
 console, the resulting dataset will be in the act_subj variable.
 
-Also, it will have been written into the by_activity_and_subject.csv file
+Also, it will have been written into the by_activity_and_subject.txt file
 
 This file has both the activity_name ands subject variables. 
 activity_name: This is what the person was doing when the observation was made

@@ -23,7 +23,7 @@ source('./run_analysis.R')
 
 Its quite chatty and can take a little while, but if you scroll up when it finishes, you will see it executes each requirement for the course in order, print()ing helpful comments as to what it was doing at the time it was running.
 
-The resulting dataset is in the by_activity_and_subject.csv file.
+The resulting dataset is in the by_activity_and_subject.txt file.
 
 ####Codebook:
 The codebook.txt file contains the description of the resulting dataset.
