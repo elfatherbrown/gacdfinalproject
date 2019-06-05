@@ -14,158 +14,58 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ####Instructions:
+1.- setwd(to the directory where you cloned this repo)
+
 Download file at https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip and unzip it in this directory. It should create a subdirectory "UCI HAR Dataset".
 
-Run the run_analysis.R script.
+2.- Run the run_analysis.R script either directly with R or using:
+source('./run_analysis.R')
+
+Its quite chatty and can take a little while, but if you scroll up when it finishes, you will see it executes each requirement for the course in order, print()ing helpful comments as to what it was doing at the time it was running.
+
+The resulting dataset is in the by_activity_and_subject.csv file.
 
 ####Codebook:
 The codebook.txt file contains the description of the resulting dataset.
 
-#### Notes:
+####Analysis:
 
-As per the README file in the original UCI HAR Dataset, we have two components of it (test and train), each in their own directory, each with identically structured files.
-
-The main variables file if the directory is test, would be X_test.txt. That has a long line of a lot of words, which are the variable values:
-
-- In Bash:
-MacBook-Pro-de-MAcbook-2:UCI HAR Dataset alex$ wc -w test/X_test.txt 
- 1653267 test/X_test.txt
-
-- In R:
-''' length(scan("./test/X_test.txt",what = character()))
-Read 1653267 items
-
-However, in the same readme, it is speciffied that:
-- There is a record for each person in the study.
-- For each record "A 561-feature vector with time and frequency domain variables"
-
-Thus, the values in the dataset should have 561 variables per record:
-
-```{r}
-t_main <- scan("./test/X_test.txt",what = character())
-```
-
-```{r}
-length(t_main)/561
-```
-
-Also from the readme:
-'train/subject_train.txt': Each row identifies the subject who performed the activity for each window sample. Its range is from 1 to 30. 
-
-So for each row here, there is a record. Take a look at the contents of this file:
-
-```{r}
-print(head(scan("./test/subject_test.txt",what = character())))
-print(tail(scan("./test/subject_test.txt",what = character())))
-```
-
-As you can see from this, the total count of space separated values in the main X_test file, divided by 561 (number of variables per record), is equal to the number of rows in subject_test.txt. 
-```{r}
-rl_subjects <- scan("./test/subject_test.txt",what = character())
-
-print(length(rl_subjects)==length(t_main)/561) 
-```
-
-Now lets look at what unique subjects we have:
-```{r}
-table(rl_subjects)
-```
-Huh... so it looks like there is a variable number of values for each subject in the main file.
-
-Now take a look at what the subject_text.txt file has:
-
+At first, mostly bash was what was needed to check for the main things:
 ```{bash}
-sort -u ./test/subject_test.txt
-wc -l ./test/subject_test.txt
+ls -l "./UCI HAR Dataset/test"
+```
+```{bash}
+wc -l "./UCI HAR Dataset/test/X_test.txt" "./UCI HAR Dataset/train/X_train.txt"
+```
+So about 30 to 70 percent in each file, as expected. 
+But how are things ordered? 
+```{bash}
+head -n 1 "./UCI HAR Dataset/test/X_test.txt" | wc -w
+```
+Ah... each line, a vector of 561 variables. That is what the documentation of the dataset says.
+
+If this is true, then the subject file and the y_test files (each identifying the performing subject and the activity being performed by each observation), must also have the same length:
+```{bash}
+wc -l "./UCI HAR Dataset/test/y_test.txt" "./UCI HAR Dataset/test/subject_test.txt" 
+```
+Yes. Same number of lines in each. Does this also happen in the train directory?
+```{bash}
+wc -l "./UCI HAR Dataset/train/y_train.txt" "./UCI HAR Dataset/train/subject_train.txt" "./UCI HAR Dataset/train/X_train.txt"
 ```
 
-That is, it has the subject (2,4...24), repeated by line as many times as we can see by: 
-```{r}
-table(rl_subjects)
+It appears so! 
+
+Ok, so we also have a file to translate activity numbers into activity names:
+```{bash}
+cat "./UCI HAR Dataset/activity_labels.txt"
 ```
-Now we also know the main meassurments file ./test/X_test.txt, read into this context into t_main, has a length of lines equal to subject_test.txt.
+Then that means activity files should have 1-6 values allways:
+```{bash}
+echo train
+sort -u "./UCI HAR Dataset/train/y_train.txt"
+echo test
+sort -u "./UCI HAR Dataset/test/y_test.txt"
+```
+Yup. So with that info, i proceded to create the functions to load activities and subjects and then one for the full X_dirname.txt file. This last one is the most critical one and its called featureVector(dname), where dname is either "test" or "train"
 
-The readme on the data set says: 
-
-- 'activity_labels.txt': Links the class labels with their activity name.
-
-- 'train/X_train.txt': Training set.
-
-- 'train/y_train.txt': Training labels.
-
-- 'test/X_test.txt': Test set.
-
-- 'test/y_test.txt': Test labels.
-
-The following files are available for the train and test data. Their descriptions are equivalent. 
-
-- 'train/subject_train.txt': Each row identifies the subject who performed the activity for each window sample. Its range is from 1 to 30.
-
-We can thus conclude we can read each line in subject_train.txt as one observation for the user whose number appears there, extract the corresponding 561-value line, of the same line number, in X_Train, get what test number corresponds to that observation from y_test and translate that from the activity_labels.txt file. Also, as :
-
-- 'features.txt': List of all features.
-
-This file gives us a variable name for each line, we will try to assume that we can translate column names from the 561 value vector, position by position in said vector, to the corresponding line in features.txt.
-
-But... step by step.... 
-
-First, parse the main X file:
-
-con <- file("UCI HAR Dataset/test/X_test.txt")
-test_obs_byline <- readLines(con)
-split <- sapply(test_obs_byline, function(line){strsplit(line,split="\\s+")})
-
-Now we should be able to parse the numbers easily:
-parse_number(split[[1]])
-
-And then:
-length(parse_number(split[[1]]))
-[1] 562
-
-Oh.... huh... shouldnt they be 561?
-
-Get the length of each split line
-
-lens <- lapply(split, length)
-
-Are they all of the same length?
-lens[lens!=562]
-R: named list()
-
-They are, so now we can assume that one value aint nice. By looking at the parse data, we see that each line starts with an empty space, which parse_number turns into a NA:
-parse_number(split[[2]])
-[1]           NA  0.286026710 ...
-
-Ah... so:
-parse_number(split[[2]])[2:562]
- [1]  0.286026710 -0.013163359 .... 
- 
-And this has the length it should:
-length(parse_number(split[[2]])[2:562])
-[1] 561
-
-So now we can:
-
-split <- sapply(test_obs_byline, function(line){strsplit(line,split="\\s+")[2:562]})
-
-And split would be all the observations, one for each position in the list. Good start.
-
-##Interesting note about sizes of the dataset files.
-
-MacBook-Pro-de-MAcbook-2:Inertial Signals alex$ wc *
-    2947  377216 6041350 body_acc_x_test.txt
-    2947  377216 6041350 body_acc_y_test.txt
-    2947  377216 6041350 body_acc_z_test.txt
-    2947  377216 6041350 body_gyro_x_test.txt
-    2947  377216 6041350 body_gyro_y_test.txt
-    2947  377216 6041350 body_gyro_z_test.txt
-    2947  377216 6041350 total_acc_x_test.txt
-    2947  377216 6041350 total_acc_y_test.txt
-    2947  377216 6041350 total_acc_z_test.txt
-   26523 3394944 54372150 total
-MacBook-Pro-de-MAcbook-2:Inertial Signals alex$ cd ../
-MacBook-Pro-de-MAcbook-2:test alex$ wc * 
-Inertial Signals/ X_test.txt        subject_test.txt  y_test.txt        
-MacBook-Pro-de-MAcbook-2:test alex$ wc  X_test.txt 
-    2947 1653267 26458166 X_test.txt
-MacBook-Pro-de-MAcbook-2:test alex$ wc  X_test.txt 
+All anyone would need to know about how this data was loaded and transformed is in that function.
