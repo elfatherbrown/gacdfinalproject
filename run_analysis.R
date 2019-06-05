@@ -47,7 +47,7 @@ checkData <- function() {
   }
 }
 ####
-# Main functions
+# Solution functions
 ###
 
 #1.- Merge The Datasets
@@ -81,7 +81,9 @@ byActivitySubject <- function (m=FALSE) {
   return(s%>%group_by(activity_name,subject) %>% summarise_at(.vars = -(1:5),.funs=mean))
 }
 
-
+####
+# Main dataset loading function
+###
 #The documentation specifies:
 # For each record it is provided:
 #   ======================================
@@ -240,6 +242,6 @@ act_subj<-byActivitySubject(msv_ds)
 print("You can see the result in the act_subj dataframe")
 print("here is a sample")
 print(head(act_subj,10))
-
+write_csv(act_subj,file.path(getwd(),"by_activity_and_subject.csv"))
 print("Hi, I executed in four steps all of the required stuff")
 print("Scroll up to see what I did")

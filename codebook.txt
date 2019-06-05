@@ -1,0 +1,19 @@
+After running this script by including it or requiring it in your
+console, the resulting dataset will be in the act_subj variable.
+
+Also, it will have been written into the by_activity_and_subject.csv file
+
+This file has both the activity_name ands subject variables. 
+activity_name: This is what the person was doing when the observation was made
+subject: It is an integer that uniquely identifies the subject performing the activity.
+
+The rest of the variables in that dataset, are described in the original 
+features_info.txt and features.txt files. 
+
+However, it was required I changed the variable (column) names for something better looking. The new_variable_names.txt file, shows you which of the old names correspond to the new ones as such:
+____orig_name____=____new_name_____
+tBodyAcc-mean()-X=t_body_acc_mean_x
+tBodyAcc-mean()-Y=t_body_acc_mean_y
+tBodyAcc-mean()-Z=t_body_acc_mean_z
+....
+Separated by an equal sign.
