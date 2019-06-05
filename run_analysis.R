@@ -158,8 +158,6 @@ getFileSignalVector <- function(fname,dname) {
   return (split)
 }
 
-
-
 #Load the subject list, which awe assume to be listed in the same
 #order as the main observations file
 subjects <- function (dname) {
@@ -169,8 +167,10 @@ subjects <- function (dname) {
   close.connection(con)
   return(subjects)
 }
-#Load the subject list, which we assume to be listed in the same
-#order as the main observations file
+#Loads the activities and the activity_labels.txt files
+#It uses the second as a translation table to create
+#an activity_id,activity_name tibble corresponding neatly
+#to the featureVector observation (one per line)
 activities <- function (dname) {
   #Parse the activity number to name file:
   actrans <-
@@ -189,14 +189,16 @@ activities <- function (dname) {
   #The follwing will make a tibble with a seq number on the activity column
   #and a value column, which holds the actual id of the activity for that observation
   activities <- tibble::enframe(activities, name = "activity")
+  #This will put the translated name of an activity into activity_name
   activities$activity_name <-
     actrans$activity_name[match(activities$value, actrans$activity_id)]
+  #Cleanup and return
   activities <-
     activities %>% mutate(activity_id = value) %>% select(activity_id, activity_name)
   return(activities)
 }
 
-
+#Loads all the variable names available in the features.txt file
 featureVarnames <- function () {
   v <-
     read.delim(file.path(getwd(),DATADIR, "features.txt"),
@@ -204,39 +206,5 @@ featureVarnames <- function () {
                sep = " ") %>% select(pos = V1, name = V2)
 }
 
-#Given a directory name, looks for the appropriate files
-# and builds a non tidy tibble that we will use to clean this
-#stuff
-aRecord <- function (dir) {
-  #The root directory has a features.txt file, with the features and
-  # an activity_labels.txt file, which labels the activities being
-  #done for each observation in the rest of the files.
-  # a features.txt file wich lists the name of each variable meassured
-  # per observation. This has the variable names.
-  
-  #We are provided with two directories test|train, which have:
-  #- an subject_dirname.txt file, with a line per meassure and
-  # the subject number (a subject identifier), is repeated in each line
-  # for each observation in the X_dirname file
-  #- an X_dirname.txt file, with a line per observation (and 561 read variables). Each line corresponds
-  # to each subject in the subject_dirname.txt file
-  #- an y_test.txt file, with a number identifying the activity being done for each observation
-  # in the previous file
-  
-  #First part of the record are the observed values on the X_dirname.txt. file
-  
-  
-  #OUTPUT:
-  #We will deliver a clean tibble with all variable names clearly stated, one full observation
-  # per row, identified by subject-activity pair
-  
-}
-
-#1. Merges the training and the test sets to create one data set.
-mergeSamsungData <- function () {
-  ###
-  #Do the nasty stuff here
-  ###
-}
 checkData()
 
